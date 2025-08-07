@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Email Sender</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>🤖 AI Generated Email Sender</h2>
+    
+    <div class="form-group">
+      <label for="recipients">📧 Recipients (comma separated):</label>
+      <input id="recipients" type="text" placeholder="example1@gmail.com, example2@gmail.com">
+    </div>
+    
+    <div class="form-group">
+      <label for="prompt">✍️ Email Prompt:</label>
+      <textarea id="prompt" placeholder="Describe what kind of email you want to generate. For example: 'Write a professional follow-up email about our meeting yesterday'"></textarea>
+    </div>
+    
+    <button id="generateBtn" onclick="generateEmail()">
+      <span id="generateText">🚀 Generate Email</span>
+      <span id="generateLoader" class="loader" style="display: none;">⏳ Generating...</span>
+    </button>
+    
+    <div class="form-group">
+      <label for="emailContent">📝 Generated Email (editable):</label>
+      <textarea id="emailContent" placeholder="Generated email will appear here... You can edit it before sending."></textarea>
+    </div>
+    
+    <button id="sendBtn" onclick="sendEmail()">
+      <span id="sendText">📤 Send Email</span>
+      <span id="sendLoader" class="loader" style="display: none;">📬 Sending...</span>
+    </button>
+    
+    <div id="status"></div>
+  </div>
+
+  <script>
+    async function generateEmail() {
+      const prompt = document.getElementById('prompt').value.trim();
+      const generateBtn = document.getElementById('generateBtn');
+      const generateText = document.getElementById('generateText');
+      const generateLoader = document.getElementById('generateLoader');
+      
+      if (!prompt) {
+        showStatus('⚠️ Please enter a prompt for the email', 'error');
+        return;
+      }
+      
+      // Show loading state
+      generateBtn.disabled = true;
+      generateText.style.display = 'none';
+      generateLoader.style.display = 'inline';
+      
+      try {
+        const res = await fetch('/generate-email', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({prompt})
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('emailContent').value = data.email;
+          showStatus('✅ Email generated successfully! You can edit it before sending.', 'success');
+        } else {
+          showStatus(`❌ Error: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showStatus('❌ Network error. Please try again.', 'error');
+        console.error('Error:', error);
+      } finally {
+        // Reset button state
+        generateBtn.disabled = false;
+        generateText.style.display = 'inline';
+        generateLoader.style.display = 'none';
+      }
+    }
+
+    async function sendEmail() {
+      const recipients = document.getElementById('recipients').value.trim();
+      const emailContent = document.getElementById('emailContent').value.trim();
+      const sendBtn = document.getElementById('sendBtn');
+      const sendText = document.getElementById('sendText');
+      const sendLoader = document.getElementById('sendLoader');
+      
+      if (!recipients) {
+        showStatus('⚠️ Please enter recipient email addresses', 'error');
+        return;
+      }
+      
+      if (!emailContent) {
+        showStatus('⚠️ Please generate or enter email content', 'error');
+        return;
+      }
+      
+      // Show loading state
+      sendBtn.disabled = true;
+      sendText.style.display = 'none';
+      sendLoader.style.display = 'inline';
+      
+      try {
+        const res = await fetch('/send-email', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({recipients, emailContent})
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
+          showStatus('✅ Email sent successfully!', 'success');
+          // Clear form after successful send
+          document.getElementById('recipients').value = '';
+          document.getElementById('prompt').value = '';
+          document.getElementById('emailContent').value = '';
+        } else {
+          showStatus('❌ Failed to send email. Please check your email settings.', 'error');
+        }
+      } catch (error) {
+        showStatus('❌ Network error. Please try again.', 'error');
+        console.error('Error:', error);
+      } finally {
+        // Reset button state
+        sendBtn.disabled = false;
+        sendText.style.display = 'inline';
+        sendLoader.style.display = 'none';
+      }
+    }
+    
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = type;
+      
+      // Auto-hide success messages after 5 seconds
+      if (type === 'success') {
+        setTimeout(() => {
+          status.textContent = '';
+          status.className = '';
+        }, 5000);
+      }
+    }
+  </script>
+</body>
+</html>
